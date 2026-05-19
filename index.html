@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QuoteDesk — Financial product quotes</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header class="site-header">
+        <div class="container site-header__inner">
+            <a class="brand" href="index.html">
+                <span class="brand__mark">Q</span>
+                <span class="brand__name">QuoteDesk</span>
+            </a>
+            <nav class="site-nav" aria-label="Primary">
+                <a href="index.html" class="site-nav__link is-active">Products</a>
+                <a href="history.html" class="site-nav__link">Quote history</a>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <section class="hero">
+            <div class="container">
+                <p class="hero__eyebrow">Instant estimates</p>
+                <h1 class="hero__title">Get a quote on the financial products that matter to you</h1>
+                <p class="hero__lede">Pick a product below, share a few details, and we'll calculate a personalized estimate in seconds. No sign-up, no credit pull — everything runs right in your browser.</p>
+            </div>
+        </section>
+
+        <section class="container section">
+            <div class="section__head">
+                <h2>Choose a product</h2>
+                <p class="muted">All six estimates use standard textbook formulas. Save quotes to revisit them on your history page.</p>
+            </div>
+            <div id="product-grid" class="grid grid--cards" aria-label="Available products"></div>
+        </section>
+    </main>
+
+    <footer class="site-footer">
+        <div class="container">
+            <p class="disclaimer">Estimates only — not a financial offer. Figures shown are illustrative and do not constitute a quote, commitment to lend, or insurance policy.</p>
+            <p class="muted small">&copy; QuoteDesk demo</p>
+        </div>
+    </footer>
+
+    <script type="module">
+        import { products } from './js/products.js';
+
+        const grid = document.getElementById('product-grid');
+        grid.innerHTML = products.map(p => `
+            <a class="card product-card" href="${p.page}">
+                <div class="product-card__icon" aria-hidden="true">${p.icon}</div>
+                <h3 class="product-card__title">${p.name}</h3>
+                <p class="product-card__blurb">${p.blurb}</p>
+                <span class="product-card__cta">Get a quote &rarr;</span>
+            </a>
+        `).join('');
+    </script>
+</body>
+</html>

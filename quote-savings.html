@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Savings / CD quote — QuoteDesk</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header class="site-header">
+        <div class="container site-header__inner">
+            <a class="brand" href="index.html">
+                <span class="brand__mark">Q</span>
+                <span class="brand__name">QuoteDesk</span>
+            </a>
+            <nav class="site-nav" aria-label="Primary">
+                <a href="index.html" class="site-nav__link is-active">Products</a>
+                <a href="history.html" class="site-nav__link">Quote history</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container section">
+        <p><a href="index.html">&larr; All products</a></p>
+        <div id="quote-header" class="quote-header"></div>
+
+        <div class="quote-layout">
+            <section class="card" aria-labelledby="form-heading">
+                <h2 id="form-heading" style="margin-top:0">Your details</h2>
+                <form id="quote-form" class="form" novalidate></form>
+            </section>
+            <section class="card" aria-live="polite" aria-labelledby="result-heading">
+                <h2 id="result-heading" style="margin-top:0">Your estimate</h2>
+                <div id="quote-result"></div>
+            </section>
+        </div>
+    </main>
+
+    <footer class="site-footer">
+        <div class="container">
+            <p class="disclaimer">Estimates only — not a financial offer. Figures shown are illustrative and do not constitute a quote, commitment to lend, or insurance policy.</p>
+            <p class="muted small">&copy; QuoteDesk demo</p>
+        </div>
+    </footer>
+
+    <script type="module">
+        import { initQuotePage } from './js/ui.js';
+        initQuotePage('savings');
+    </script>
+</body>
+</html>

@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quote history — QuoteDesk</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header class="site-header">
+        <div class="container site-header__inner">
+            <a class="brand" href="index.html">
+                <span class="brand__mark">Q</span>
+                <span class="brand__name">QuoteDesk</span>
+            </a>
+            <nav class="site-nav" aria-label="Primary">
+                <a href="index.html" class="site-nav__link">Products</a>
+                <a href="history.html" class="site-nav__link is-active">Quote history</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container section">
+        <div class="section__head">
+            <h1>Your saved quotes</h1>
+            <p class="muted">All quotes are stored locally in this browser. Clearing your browser data will remove them.</p>
+        </div>
+
+        <div class="history-actions">
+            <button id="clear-btn" class="btn btn--danger" type="button">Clear history</button>
+        </div>
+
+        <div id="history"></div>
+    </main>
+
+    <footer class="site-footer">
+        <div class="container">
+            <p class="disclaimer">Estimates only — not a financial offer. Figures shown are illustrative and do not constitute a quote, commitment to lend, or insurance policy.</p>
+            <p class="muted small">&copy; QuoteDesk demo</p>
+        </div>
+    </footer>
+
+    <script type="module">
+        import { listQuotes, clearQuotes } from './js/storage.js';
+        import { getProduct } from './js/products.js';
+        import { formatDate } from './js/ui.js';
+
+        const root = document.getElementById('history');
+        const clearBtn = document.getElementById('clear-btn');
+
+        function summarizeInputs(inputs) {
+            return Object.entries(inputs)
+                .map(([k, v]) => `${k}: ${v}`)
+                .join(' · ');
+        }
+
+        function render() {
+            const quotes = listQuotes();
+            if (quotes.length === 0) {
+                root.innerHTML = `
+                    <div class="empty-state">
+                        <p>You haven't saved any quotes yet.</p>
+                        <p><a href="index.html">Browse products &rarr;</a></p>
+                    </div>
+                `;
+                clearBtn.disabled = true;
+                return;
+            }
+            clearBtn.disabled = false;
+
+            // Group by productId
+            const groups = new Map();
+            for (const q of quotes) {
+                if (!groups.has(q.productId)) groups.set(q.productId, []);
+                groups.get(q.productId).push(q);
+            }
+
+            root.innerHTML = Array.from(groups.entries()).map(([pid, items]) => {
+                const product = getProduct(pid);
+                const name = product?.name ?? items[0].productName ?? pid;
+                return `
+                    <section class="history-group">
+                        <div class="history-group__head">
+                            ${product ? `<div class="product-card__icon" aria-hidden="true">${product.icon}</div>` : ''}
+                            <h2>${name}</h2>
+                            <span class="history-group__count">${items.length} quote${items.length === 1 ? '' : 's'}</span>
+                        </div>
+                        ${items.map(q => `
+                            <article class="history-item">
+                                <div class="history-item__headline">${q.headline}</div>
+                                <div class="history-item__time">${formatDate(q.savedAt)}</div>
+                                <div class="history-item__inputs">${summarizeInputs(q.inputs)}</div>
+                            </article>
+                        `).join('')}
+                    </section>
+                `;
+            }).join('');
+        }
+
+        clearBtn.addEventListener('click', () => {
+            if (!confirm('Clear all saved quotes?')) return;
+            clearQuotes();
+            render();
+        });
+
+        render();
+    </script>
+</body>
+</html>
