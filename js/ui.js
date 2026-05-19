@@ -25,7 +25,13 @@ function readHash(fields) {
     for (const field of fields) {
         if (params.has(field.name)) {
             const raw = params.get(field.name);
-            data[field.name] = field.type === 'number' ? Number(raw) : raw;
+            if (field.type === 'number') {
+                const num = Number(raw);
+                if (isNaN(num)) continue; // skip invalid numeric values
+                data[field.name] = num;
+            } else {
+                data[field.name] = raw;
+            }
             found = true;
         }
     }
@@ -150,7 +156,7 @@ export function initQuotePage(productId) {
         errorEl.hidden = true;
     }
 
-    function applyQuote(inputs) {
+    function applyQuote(inputs, fromHash = false) {
         try {
             const quote = product.calculate(inputs);
             lastQuote = quote;
@@ -165,7 +171,8 @@ export function initQuotePage(productId) {
             saveBtn.disabled = true;
             shareBtn.disabled = true;
             resultEl.innerHTML = '<p class="quote-result__empty">Adjust the inputs to see your estimate.</p>';
-            showError(err.message || 'Unable to calculate a quote.');
+            const prefix = fromHash ? 'The shared link contains invalid inputs. ' : '';
+            showError(prefix + (err.message || 'Unable to calculate a quote.'));
         }
     }
 
@@ -205,13 +212,16 @@ export function initQuotePage(productId) {
     });
 
     shareBtn.addEventListener('click', () => {
-        navigator.clipboard.writeText(window.location.href).then(() => {
-            const orig = shareBtn.textContent;
-            shareBtn.textContent = 'Copied!';
-            setTimeout(() => { shareBtn.textContent = orig; }, 2000);
-        }).catch(() => {
-            prompt('Copy this link to share your quote:', window.location.href);
-        });
+        const url = window.location.href;
+        (navigator.clipboard?.writeText(url) ?? Promise.reject())
+            .then(() => {
+                const orig = shareBtn.textContent;
+                shareBtn.textContent = 'Copied!';
+                setTimeout(() => { shareBtn.textContent = orig; }, 2000);
+            })
+            .catch(() => {
+                prompt('Copy this link to share your quote:', url);
+            });
     });
 
     // Restore inputs from URL hash and auto-calculate if present
@@ -223,7 +233,7 @@ export function initQuotePage(productId) {
                 if (el) el.value = hashInputs[field.name];
             }
         }
-        applyQuote(readForm(formEl, product.fields));
+        applyQuote(readForm(formEl, product.fields), true);
     } else {
         resultEl.innerHTML = '<p class="quote-result__empty">Fill out the form and click <strong>Get quote</strong> to see your estimate.</p>';
     }
