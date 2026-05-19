@@ -2,6 +2,42 @@
 import { getProduct } from './products.js';
 import { addQuote } from './storage.js';
 
+// --- URL hash helpers ---
+
+function writeHash(inputs) {
+    const params = new URLSearchParams();
+    for (const [k, v] of Object.entries(inputs)) {
+        params.set(k, String(v));
+    }
+    history.replaceState(null, '', '#' + params.toString());
+}
+
+function clearHash() {
+    history.replaceState(null, '', window.location.pathname + window.location.search);
+}
+
+function readHash(fields) {
+    const hash = window.location.hash.slice(1);
+    if (!hash) return null;
+    const params = new URLSearchParams(hash);
+    const data = {};
+    let found = false;
+    for (const field of fields) {
+        if (params.has(field.name)) {
+            const raw = params.get(field.name);
+            if (field.type === 'number') {
+                const num = Number(raw);
+                if (isNaN(num)) continue; // skip invalid numeric values
+                data[field.name] = num;
+            } else {
+                data[field.name] = raw;
+            }
+            found = true;
+        }
+    }
+    return found ? data : null;
+}
+
 export function formatCurrency(n) {
     return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 2 }).format(n);
 }
@@ -99,6 +135,7 @@ export function initQuotePage(productId) {
         <div class="form-actions">
             <button type="submit" class="btn btn--primary">Get quote</button>
             <button type="button" id="save-btn" class="btn" disabled>Save to history</button>
+            <button type="button" id="share-btn" class="btn" disabled>Copy link</button>
             <button type="reset" class="btn btn--ghost">Reset</button>
         </div>
     `;
@@ -106,6 +143,7 @@ export function initQuotePage(productId) {
     const resultEl = document.getElementById('quote-result');
     const errorEl = document.getElementById('form-error');
     const saveBtn = document.getElementById('save-btn');
+    const shareBtn = document.getElementById('share-btn');
     let lastQuote = null;
     let lastInputs = null;
 
@@ -118,24 +156,32 @@ export function initQuotePage(productId) {
         errorEl.hidden = true;
     }
 
-    formEl.addEventListener('submit', (e) => {
-        e.preventDefault();
-        clearError();
-        if (!formEl.reportValidity()) return;
-        const inputs = readForm(formEl, product.fields);
+    function applyQuote(inputs, fromHash = false) {
         try {
             const quote = product.calculate(inputs);
             lastQuote = quote;
             lastInputs = inputs;
             renderResult(resultEl, quote, product);
             saveBtn.disabled = false;
+            shareBtn.disabled = false;
+            writeHash(inputs);
         } catch (err) {
             lastQuote = null;
             lastInputs = null;
             saveBtn.disabled = true;
+            shareBtn.disabled = true;
             resultEl.innerHTML = '<p class="quote-result__empty">Adjust the inputs to see your estimate.</p>';
-            showError(err.message || 'Unable to calculate a quote.');
+            const prefix = fromHash ? 'The shared link contains invalid inputs. ' : '';
+            showError(prefix + (err.message || 'Unable to calculate a quote.'));
         }
+    }
+
+    formEl.addEventListener('submit', (e) => {
+        e.preventDefault();
+        clearError();
+        if (!formEl.reportValidity()) return;
+        const inputs = readForm(formEl, product.fields);
+        applyQuote(inputs);
     });
 
     formEl.addEventListener('reset', () => {
@@ -143,7 +189,9 @@ export function initQuotePage(productId) {
         lastQuote = null;
         lastInputs = null;
         saveBtn.disabled = true;
+        shareBtn.disabled = true;
         resultEl.innerHTML = '<p class="quote-result__empty">Fill out the form and click <strong>Get quote</strong> to see your estimate.</p>';
+        clearHash();
     });
 
     saveBtn.addEventListener('click', () => {
@@ -163,5 +211,32 @@ export function initQuotePage(productId) {
         setTimeout(() => flash.remove(), 3000);
     });
 
-    resultEl.innerHTML = '<p class="quote-result__empty">Fill out the form and click <strong>Get quote</strong> to see your estimate.</p>';
+    shareBtn.addEventListener('click', () => {
+        const url = window.location.href;
+        (navigator.clipboard?.writeText(url) ?? Promise.reject(new Error('Clipboard API not available')))
+            .then(() => {
+                const orig = shareBtn.textContent;
+                shareBtn.textContent = 'Copied!';
+                setTimeout(() => { shareBtn.textContent = orig; }, 2000);
+            })
+            .catch(() => {
+                prompt('Copy this link to share your quote:', url);
+            });
+    });
+
+    // Restore inputs from URL hash and auto-calculate if present
+    const hashInputs = readHash(product.fields);
+    if (hashInputs) {
+        const inputs = readForm(formEl, product.fields);
+        for (const field of product.fields) {
+            if (field.name in hashInputs) {
+                const el = formEl.elements.namedItem(field.name);
+                if (el) el.value = hashInputs[field.name];
+                inputs[field.name] = hashInputs[field.name];
+            }
+        }
+        applyQuote(inputs, true);
+    } else {
+        resultEl.innerHTML = '<p class="quote-result__empty">Fill out the form and click <strong>Get quote</strong> to see your estimate.</p>';
+    }
 }
