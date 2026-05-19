@@ -213,7 +213,7 @@ export function initQuotePage(productId) {
 
     shareBtn.addEventListener('click', () => {
         const url = window.location.href;
-        (navigator.clipboard?.writeText(url) ?? Promise.reject())
+        (navigator.clipboard?.writeText(url) ?? Promise.reject(new Error('Clipboard API not available')))
             .then(() => {
                 const orig = shareBtn.textContent;
                 shareBtn.textContent = 'Copied!';
@@ -227,13 +227,15 @@ export function initQuotePage(productId) {
     // Restore inputs from URL hash and auto-calculate if present
     const hashInputs = readHash(product.fields);
     if (hashInputs) {
+        const inputs = readForm(formEl, product.fields);
         for (const field of product.fields) {
             if (field.name in hashInputs) {
                 const el = formEl.elements.namedItem(field.name);
                 if (el) el.value = hashInputs[field.name];
+                inputs[field.name] = hashInputs[field.name];
             }
         }
-        applyQuote(readForm(formEl, product.fields), true);
+        applyQuote(inputs, true);
     } else {
         resultEl.innerHTML = '<p class="quote-result__empty">Fill out the form and click <strong>Get quote</strong> to see your estimate.</p>';
     }
